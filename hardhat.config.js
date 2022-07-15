@@ -8,12 +8,6 @@ require('dotenv').config();
 module.exports = {
   defaultNetwork: "hardhat",
   networks: {
-    localhost: {
-      url: "http://localhost:7545",
-      accounts: {
-        mnemonic: process.env.MNEMONIC_FOR_TESTS
-      }
-    },
     hardhat: {
     }
   },
