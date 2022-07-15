@@ -11,18 +11,11 @@ module.exports = {
     localhost: {
       url: "http://localhost:7545",
       accounts: {
-        mnemonic: process.env.MNEMONIC_LOCALHOST
+        mnemonic: process.env.MNEMONIC_FOR_TESTS
       }
     },
     hardhat: {
-    },
-    mumbai: {
-      url: "https://rpc-mumbai.maticvigil.com",
-      accounts: [process.env.PRIVATE_KEY_MUMBAI]
     }
-  },
-  etherscan: {
-    apiKey: process.env.POLYGONSCAN_API_KEY
   },
   solidity: {
     version: "0.8.2",
