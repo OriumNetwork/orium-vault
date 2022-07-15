@@ -1,0 +1,35 @@
+name: Build
+
+on:
+  push:
+    branches: [ '*', '!master', '!dev' ]
+
+jobs:
+
+  build_test_deploy:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }} for OriumNetwork
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@oriumnetwork'
+      - name: Use Node.js ${{ matrix.node-version }} for OriumGamingGuild
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@oriumgamingguild'
+      - name: Install Dependencies
+        run: npm ci
+        env:
+          CI: true
+          NODE_AUTH_TOKEN: ${{ secrets.GHB_TOKEN }}
