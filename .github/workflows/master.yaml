@@ -29,8 +29,3 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GHB_TOKEN }}
       - name: Run Smart Contracts unit tests
         run: npx hardhat test
-      - name: Publish Package
-        run: npm publish
-        env:
-          CI: true
-          NODE_AUTH_TOKEN: ${{ secrets.GHB_TOKEN }}
