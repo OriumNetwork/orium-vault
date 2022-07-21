@@ -134,22 +134,31 @@ describe("BaseOriumVault", function () {
     it("Cannot withdraw NFT if not owner", async function () {
       await nft.connect(addr3).approve(oriumVault.address, 3);
       await oriumVault.connect(addr3).depositNft(nft.address, 3);
-      await expect(oriumVault.connect(addr2).withdrawNft(nft.address, 3)).to.be.revertedWith('Sender does not have the specified tokenId deposited here');
+      await expect(oriumVault.connect(addr2).withdrawNft(nft.address, 3)).to.be.revertedWith('No nfts deposited in this Vault');
     });
 
   });
   describe("Split operations", function() {
-    it("Should set splits correctly", async function () {
+    it("Should set split owners correctly", async function () {
       const ownerAddresses = [addr1.address, addr2.address, addr3.address];
-      await oriumVault.connect(addr3).setSplits(ownerAddresses, [10, 40, 50]);
+      await oriumVault.connect(addr3).setSplitOwners(ownerAddresses);
+      expect(await oriumVault.splitOwners(0)).to.equal(addr1.address);
+      expect(await oriumVault.splitOwners(2)).to.equal(addr3.address);
     });
-    it("Should not let set splits incorrectly (more than 100)", async function () {
+    it("Should not create token generation event (more than 100% splits)", async function () {
       const ownerAddresses = [addr1.address, addr2.address, addr3.address];
-      await expect(oriumVault.connect(addr3).setSplits(ownerAddresses, [10, 41, 50])).to.be.revertedWith('Splits does not sum up to 100');
+      await oriumVault.connect(addr3).setSplitOwners(ownerAddresses);
+      expect(oriumVault.connect(addr3).createTokenGenerationEvent("test", [10, 41, 50])).to.be.revertedWith("Splits does not sum up to 100");
     });
-    it("Should not let set splits incorrectly (less than 100)", async function () {
+    it("Should not create token generation event (less than 100% splits)", async function () {
       const ownerAddresses = [addr1.address, addr2.address, addr3.address];
-      await expect(oriumVault.connect(addr3).setSplits(ownerAddresses, [10, 39, 50])).to.be.revertedWith('Splits does not sum up to 100');
+      await oriumVault.connect(addr3).setSplitOwners(ownerAddresses);
+      expect(oriumVault.connect(addr3).createTokenGenerationEvent("test", [10, 39, 50])).to.be.revertedWith("Splits does not sum up to 100");
+    });
+    it("Should create token generation event correctly", async function () {
+      const ownerAddresses = [addr1.address, addr2.address, addr3.address];
+      await oriumVault.connect(addr3).setSplitOwners(ownerAddresses);
+      expect(oriumVault.connect(addr3).createTokenGenerationEvent("test", [10, 40, 50])).to.not.be.reverted;
     });
   });
 

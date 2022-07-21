@@ -14,13 +14,11 @@ abstract contract BaseOriumVault is IERC721Receiver {
     bool rented;
     bool takeBack;
   }
+  // Array of all Nfts
   Nft[] public nfts;
 
-  // Mapping of owner => tokenAddress => tokenId => nftsIndex
-  mapping (address => mapping (address => mapping (uint => uint))) public holdings;
-
   // Mapping of owner => nftsIndex[]
-  mapping (address => uint[]) owners;
+  mapping (address => Nft[]) owners;
 
   address[] public splitOwners;
   struct TokenGenerationEvent {
@@ -69,7 +67,9 @@ abstract contract BaseOriumVault is IERC721Receiver {
 
   event ERC721Received(address indexed from, address indexed ERC721Address, uint256 indexed tokenId);
 
-  event ERC721Withdrawn(address indexed to, uint256 indexed tokenId);
+  event ERC721Withdrawn(address indexed to, address indexed ERC721Address, uint256 indexed tokenId);
+
+  event ERC721MarkedForWithdrawn(address indexed to, address indexed ERC721Address, uint256 indexed tokenId);
 
   function changeName(string memory _newName) external onlyAdmin {
     name = _newName;
@@ -114,11 +114,9 @@ abstract contract BaseOriumVault is IERC721Receiver {
 
     ERC721(_tokenAddress).safeTransferFrom(msg.sender, address(this), _tokenId);
 
-    uint newNftIndex = nfts.length;
     Nft memory newNft = Nft(msg.sender, _tokenId, _tokenAddress, false, false);
     nfts.push(newNft);
-    holdings[msg.sender][_tokenAddress][_tokenId] = newNftIndex;
-    owners[msg.sender].push(newNftIndex);
+    owners[msg.sender].push(newNft);
 
     emit ERC721Received(_tokenAddress, msg.sender, _tokenId);
   }
@@ -131,50 +129,52 @@ abstract contract BaseOriumVault is IERC721Receiver {
     }
   }
 
+  function removeNft(address _owner, address _tokenAddress, uint _tokenId) internal {
+    for (uint i = 0; i < nfts.length; i++) {
+      if (nfts[i].owner == _owner && nfts[i].tokenAddress == _tokenAddress && nfts[i].tokenId == _tokenId) {
+        nfts[i] = nfts[nfts.length - 1];
+        nfts.pop();
+        break;
+      }
+    }
+  }
+
   /**
    * @dev Withdraw the NFT specified by the parameters
    * @param _tokenAddress The address of the ERC721 token
    * @param _tokenId The id of the ERC721 token
    *
-   * @return False if withdraw could not be performed right away. In this case
-   * the token is marked to be withdraw as soon as his rental contract finishes.
    */
+  function withdrawNft(address _tokenAddress, uint256 _tokenId) public {
 
-  function withdrawNft(address _tokenAddress, uint256 _tokenId) public returns (bool) {
+    Nft[] storage callerNfts = owners[msg.sender];
 
-    uint index = holdings[msg.sender][_tokenAddress][_tokenId];
+    require(callerNfts.length > 0, "No nfts deposited in this Vault");
 
-    require(
-      nfts[index].owner == msg.sender && 
-      nfts[index].tokenAddress == _tokenAddress &&
-      nfts[index].tokenId == _tokenId, "Sender does not have the specified tokenId deposited here");
-
-    if (nfts[index].rented) {
-      nfts[index].takeBack = true;
-      return false;
-    }
-
-    nfts[index] = nfts[nfts.length - 1];
-    nfts.pop();
-
-    for (uint i = 0; i < owners[msg.sender].length; i++) {
-      if (owners[msg.sender][i] == index) {
-        owners[msg.sender][i] = owners[msg.sender][owners[msg.sender].length - 1];
-        owners[msg.sender].pop();
-        break;
+    for (uint256 i = 0; i < callerNfts.length; i++) {
+      if (callerNfts[i].tokenAddress == _tokenAddress && callerNfts[i].tokenId == _tokenId) {
+        if (callerNfts[i].rented) {
+          callerNfts[i].takeBack = true;
+          emit ERC721MarkedForWithdrawn(msg.sender, _tokenAddress, _tokenId);
+          return;
+        } else {
+          ERC721(_tokenAddress).safeTransferFrom(address(this), msg.sender, _tokenId);
+          callerNfts[i] = callerNfts[callerNfts.length - 1];
+          callerNfts.pop();
+          removeNft(msg.sender, _tokenAddress, _tokenId);
+          emit ERC721Withdrawn(msg.sender, _tokenAddress, _tokenId);
+          return;
+        }
       }
     }
 
-    delete holdings[msg.sender][_tokenAddress][_tokenId];
-
-    ERC721(_tokenAddress).safeTransferFrom(address(this), msg.sender, _tokenId);
-
-    emit ERC721Withdrawn(msg.sender, _tokenId);
-
-    return true;
+    require(false, "Nft not found for owner");
   }
 
   function batchWithdrawNft(address[] calldata _tokenAddresses, uint256[] calldata _tokenIds) external {
+    // TODO: This function can be optimized. In the withdrawNft, a loop is performed
+    // to find each individual nft. That loop can be brought here so that many iterations
+    // will be removed.
     require(_tokenAddresses.length == _tokenIds.length, "Arrays should have the same length");
     for (uint i = 0; i < _tokenIds.length; i++) {
       withdrawNft(_tokenAddresses[i], _tokenIds[i]);
@@ -184,7 +184,7 @@ abstract contract BaseOriumVault is IERC721Receiver {
   function withdrawAllNfts() external {
     require(owners[msg.sender].length > 0, "No NFTs deposited in this Vault");
     for (uint i = 0; i < owners[msg.sender].length; i++) {
-      Nft memory nft = nfts[owners[msg.sender][i]];
+      Nft memory nft = owners[msg.sender][i];
       withdrawNft(nft.tokenAddress, nft.tokenId);
     }
   }
