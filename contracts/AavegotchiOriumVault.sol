@@ -7,27 +7,25 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract AavegotchiOriumVault is BaseOriumVault, Initializable {
 
-  // Balances in the format: tokenAddress -> owner -> balance
-  mapping (address => mapping (address => uint256)) public balances;
-
   function initialize(address _admin, string memory _name) public initializer {
     admin = _admin;
     name = _name;
     vaultType = VaultType.AAVEGOTCHI;
   }
 
-  function claim(address claimableAddress) public onlyAdmin {
+  /*
+  function claim(address _claimableAddress) public onlyAdmin {
     // get balance of all tokens before claim
-    uint[] memory preClaimBalances = new uint[](claimableTokens.length);
-    for (uint i = 0; i < claimableTokens.length; i++) {
-      preClaimBalances[i] = ERC20(claimableTokens[i]).balanceOf(address(this));
+    uint[] memory preClaimBalances = new uint[](_claimableTokens.length);
+    for (uint i = 0; i < _claimableTokens.length; i++) {
+      preClaimBalances[i] = ERC20(_claimableTokens[i]).balanceOf(address(this));
     }
 
-    ClaimableContract(claimableAddress).claim();
+    ClaimableContract(_claimableAddress).claim();
 
     // get balance of all tokens before claim
-    for (uint i = 0; i < claimableTokens.length; i++) {
-      uint posClaimBalance = ERC20(claimableTokens[i]).balanceOf(address(this));
+    for (uint i = 0; i < _claimableTokens.length; i++) {
+      uint posClaimBalance = ERC20(_claimableTokens[i]).balanceOf(address(this));
       uint tokensEarned = posClaimBalance - preClaimBalances[i];
       require(tokensEarned >= 0, "Balance changed while executing function");
       if (tokensEarned == 0) continue;
@@ -36,14 +34,16 @@ contract AavegotchiOriumVault is BaseOriumVault, Initializable {
       for (uint j = 0; j < splits.length; j++) {
         require(tokensEarned * splits[j] > tokensEarned, "Overflow in tokensEarned * splits");
         uint share = tokensEarned * splits[j] / 100;
-        balances[claimableTokens[i]][splitOwners[j]] = share;
+        balances[_claimableTokens[i]][splitOwners[j]] = share;
       }
     }
+  }
+  */
 
+  function _startScholarship(address _scholar, address[] memory _tokenAddresses, uint[] memory _tokenIds) internal override {
   }
 
-  function getClaimableBalance(address tokenAddress) public view returns (uint) {
-    return balances[tokenAddress][msg.sender];
+  function _endScholarship(address _scholar) internal override {
   }
 
 }
