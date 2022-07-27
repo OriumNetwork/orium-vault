@@ -18,14 +18,12 @@ abstract contract BaseOriumVault is IERC721Receiver {
   Nft[] public nfts;
 
   // Mapping of owner => nftsIndex[]
-  mapping (address => Nft[]) owners;
+  mapping (address => Nft[]) public owners;
 
   address[] public splitOwners;
-  struct TokenGenerationEvent {
-    string name;
-    uint8[] splits;
-  }
-  TokenGenerationEvent[] public tokenGenerationEvents;
+
+  // Mapping of token generation event name => splits between splitOwners
+  mapping (string => uint8[]) public tokenGenerationEvents;
 
   // TODO: Fazer estrutura para armazenar splits de token generation events.
   // Hoje temos: Spillover, Channeling e Farming
@@ -37,7 +35,7 @@ abstract contract BaseOriumVault is IERC721Receiver {
   Scholarship[] public scholarships;
 
   // Mapping of owner => tokenAddress => balance
-  mapping (address => mapping (address => uint)) balances;
+  mapping (address => mapping (address => uint)) public balances;
 
   address[] public nftAddressWhitelist;
 
@@ -171,7 +169,7 @@ abstract contract BaseOriumVault is IERC721Receiver {
     require(false, "Nft not found for owner");
   }
 
-  function batchWithdrawNft(address[] calldata _tokenAddresses, uint256[] calldata _tokenIds) external {
+  function batchWithdrawNfts(address[] calldata _tokenAddresses, uint256[] calldata _tokenIds) external {
     // TODO: This function can be optimized. In the withdrawNft, a loop is performed
     // to find each individual nft. That loop can be brought here so that many iterations
     // will be removed.
@@ -203,7 +201,17 @@ abstract contract BaseOriumVault is IERC721Receiver {
     }
     require(total == 100, "Splits does not sum up to 100");
 
-    tokenGenerationEvents.push(TokenGenerationEvent(_name, _splits));
+    tokenGenerationEvents[_name] = _splits;
+  }
+
+  function distributeTokens(address tokenAddress, uint amount, string memory tokenGenerationEventName) external onlyAdmin {
+    require(ERC20(tokenAddress).balanceOf(address(this)) >= amount, "Tokens were not transferred into here");
+    uint8[] storage splits = tokenGenerationEvents[tokenGenerationEventName];
+    for (uint i = 0; i < splitOwners.length; i++) {
+      uint result = balances[splitOwners[i]][tokenAddress] + (amount * splits[i] / 100);
+      require(result > balances[splitOwners[i]][tokenAddress], "Overflow in balance");
+      balances[splitOwners[i]][tokenAddress] = result;
+    }
   }
 
   function _startScholarship(address _scholar, address[] memory _tokenAddresses, uint[] memory _tokenIds) internal virtual;
@@ -236,8 +244,12 @@ abstract contract BaseOriumVault is IERC721Receiver {
     ERC20(tokenAddress).transferFrom(address(this), msg.sender, toTransfer);
   }
 
-  function balanceOf(address tokenAddress, address owner) external view returns (uint) {
+  function balanceOfTokens(address tokenAddress, address owner) external view returns (uint) {
     return balances[tokenAddress][owner];
+  }
+
+  function getAllNfts(address owner) external view returns (Nft[] memory) {
+    return owners[owner];
   }
 
 }

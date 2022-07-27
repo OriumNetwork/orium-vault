@@ -3,13 +3,14 @@ const { ethers, upgrades } = require('hardhat');
 
 describe("BaseOriumVault", function () {
 
-  let nft;
+  let nft, nft2;
   let forbiddenNft;
   let oriumVault;
   let deployer;
   let addr1;
   let addr2;
   let addr3;
+  let erc20;
 
   beforeEach(async function () {
     SimpleNft = await ethers.getContractFactory("SimpleNft");
@@ -19,14 +20,21 @@ describe("BaseOriumVault", function () {
     await nft.mint(addr2.address, 'uri2');
     await nft.mint(addr3.address, 'uri3');
 
+    nft2 = await SimpleNft.deploy();
+    await nft2.mint(addr1.address, 'uri1');
+    await nft2.mint(addr2.address, 'uri2');
+    await nft2.mint(addr3.address, 'uri3');
+
     forbiddenNft = await SimpleNft.deploy();
     await forbiddenNft.mint(deployer.address, 'uri1');
 
     const AavegotchiOriumVault = await ethers.getContractFactory("AavegotchiOriumVault");
-    //oriumVault = await BaseOriumVault.deploy(addr3.address, "Test Vault", 0);
     oriumVault = await upgrades.deployProxy(AavegotchiOriumVault, [addr3.address, "Test Vault"]);
     await oriumVault.deployed();
-    await oriumVault.connect(addr3).addNftAddressesToWhitelist([nft.address]);
+    await oriumVault.connect(addr3).addNftAddressesToWhitelist([nft.address, nft2.address]);
+
+    SimpleToken1 = await ethers.getContractFactory("SimpleToken1");
+    erc20 = await SimpleToken1.deploy("ERC20Token", "E20T", 1000000000);
   });
 
   describe("Deployment", function () {
@@ -159,6 +167,48 @@ describe("BaseOriumVault", function () {
       const ownerAddresses = [addr1.address, addr2.address, addr3.address];
       await oriumVault.connect(addr3).setSplitOwners(ownerAddresses);
       expect(oriumVault.connect(addr3).createTokenGenerationEvent("test", [10, 40, 50])).to.not.be.reverted;
+    });
+    it("Should distribute tokens between split owners", async function () {
+      const ownerAddresses = [addr1.address, addr2.address, addr3.address];
+      await oriumVault.connect(addr3).setSplitOwners(ownerAddresses);
+      await oriumVault.connect(addr3).createTokenGenerationEvent("test", [10, 40, 50])
+      await erc20.transfer(oriumVault.address, 1000000);
+      await oriumVault.connect(addr3).distributeTokens(erc20.address, 1000000, "test");
+      expect(await oriumVault.balances(addr1.address, erc20.address)).to.equal(100000);
+      expect(await oriumVault.balances(addr2.address, erc20.address)).to.equal(400000);
+      expect(await oriumVault.balances(addr3.address, erc20.address)).to.equal(500000);
+    });
+
+  });
+
+  describe("Batch operations", function() {
+    it("Should deposit NFTs in batch", async function () {
+      nft.connect(addr2).approve(oriumVault.address, 2);
+      nft2.connect(addr2).approve(oriumVault.address, 2);
+      const nftAddrs = [nft.address, nft2.address];
+      const nftIds = [2, 2];
+      await oriumVault.connect(addr2).batchDepositNfts(nftAddrs, nftIds);
+      const nfts = await oriumVault.getAllNfts(addr2.address);
+      expect(nfts.length).to.equal(2);
+      expect(nfts[0].owner).to.equal(addr2.address);
+      expect(nfts[0].tokenAddress).to.equal(nft.address);
+      expect(nfts[0].tokenId).to.equal(2);
+      expect(nfts[1].owner).to.equal(addr2.address);
+      expect(nfts[1].tokenAddress).to.equal(nft2.address);
+      expect(nfts[1].tokenId).to.equal(2);
+    });
+    it("Should withdraw NFTs in batch", async function () {
+      nft.connect(addr2).approve(oriumVault.address, 2);
+      nft2.connect(addr2).approve(oriumVault.address, 2);
+      const nftAddrs = [nft.address, nft2.address];
+      const nftIds = [2, 2];
+      await oriumVault.connect(addr2).batchDepositNfts(nftAddrs, nftIds);
+
+      await oriumVault.connect(addr2).batchWithdrawNfts(nftAddrs, nftIds);
+      const nfts = await oriumVault.getAllNfts(addr2.address);
+      expect(nfts.length).to.equal(0);
+      expect(await nft.ownerOf(2)).to.equal(addr2.address);
+      expect(await nft2.ownerOf(2)).to.equal(addr2.address);
     });
   });
 
