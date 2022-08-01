@@ -23,7 +23,7 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@oriumnetwork'
       - name: Install Dependencies
-        run: yarn install
+        run: npm ci
         env:
           CI: true
           NODE_AUTH_TOKEN: ${{ secrets.GHB_TOKEN }}
