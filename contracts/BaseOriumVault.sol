@@ -25,14 +25,11 @@ abstract contract BaseOriumVault is IERC721Receiver {
   // Mapping of token generation event name => splits between splitOwners
   mapping (string => uint8[]) public tokenGenerationEvents;
 
-  // TODO: Fazer estrutura para armazenar splits de token generation events.
-  // Hoje temos: Spillover, Channeling e Farming
+  // mapping of scholar address => scholar nfts indexes
+  mapping (address => uint[]) public scholarships;
 
-  struct Scholarship {
-    address scholar;
-    uint[] nftIndexes;
-  }
-  Scholarship[] public scholarships;
+  // Keeps indexes of mapping above
+  address[] public scholarAddresses;
 
   // Mapping of owner => tokenAddress => balance
   mapping (address => mapping (address => uint)) public balances;
@@ -50,7 +47,6 @@ abstract contract BaseOriumVault is IERC721Receiver {
 
   // ERC20 addresses of claimable tokens
   address[] internal claimableTokens;
-
 
   enum VaultType {
     AAVEGOTCHI,
@@ -211,27 +207,45 @@ abstract contract BaseOriumVault is IERC721Receiver {
     }
   }
 
-  function _startScholarship(address _scholar, address[] memory _tokenAddresses, uint[] memory _tokenIds) internal virtual;
+  function _startScholarship(address _scholar, uint[] memory _tokenIndexes) internal virtual;
 
   function startScholarship(address _scholar, uint[] calldata _tokenIndexes) external onlyAdmin {
+    require(_tokenIndexes.length > 0, "_tokenIndexes length is zero");
+    require(scholarships[_scholar].length == 0, "Scholar already has scholarship");
     for (uint i = 0; i < _tokenIndexes.length; i++) {
+      require(nfts.length > _tokenIndexes[i], "Nfts array index out of bounds");
       require(!nfts[_tokenIndexes[i]].rented, "Nft is already rented");
-      require(!nfts[_tokenIndexes[i]].takeBack, "Nft is marked to be withdraw");
+      require(!nfts[_tokenIndexes[i]].takeBack, "Nft is marked to be withdrawn");
       nfts[_tokenIndexes[i]].rented = true;
     }
-    scholarships.push(Scholarship(_scholar, _tokenIndexes));
+    scholarships[_scholar] = _tokenIndexes;
+    scholarAddresses.push(_scholar);
+
+    _startScholarship(_scholar, _tokenIndexes);
   }
 
   function _endScholarship(address _scholar) internal virtual;
+
   function endScholarship(address _scholar) external onlyAdmin {
+    require(scholarships[_scholar].length > 0, "Scholarship does not exist");
+    uint[] storage indexes = scholarships[_scholar];
+    for (uint i = 0; i < indexes.length; i++) {
+      nfts[indexes[i]].rented = false;
+    }
+    for (uint i = 0; i < scholarAddresses.length; i++) {
+      if (scholarAddresses[i] == _scholar) {
+        scholarAddresses[i] = scholarAddresses[scholarAddresses.length - 1];
+        scholarAddresses.pop();
+        break;
+      }
+    }
+    delete scholarships[_scholar];
+
+    _endScholarship(_scholar);
   }
 
   function getNumScholarships() external view returns (uint) {
-    return scholarships.length;
-  }
-
-  function getScholarship(uint _index) external view returns (Scholarship memory) {
-    return scholarships[_index];
+    return scholarAddresses.length;
   }
 
   function claim(address _tokenAddress) external {
