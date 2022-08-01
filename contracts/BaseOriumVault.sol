@@ -204,13 +204,13 @@ abstract contract BaseOriumVault is IERC721Receiver {
     tokenGenerationEvents[_name] = _splits;
   }
 
-  function distributeTokens(address tokenAddress, uint amount, string memory tokenGenerationEventName) external onlyAdmin {
-    require(ERC20(tokenAddress).balanceOf(address(this)) >= amount, "Tokens were not transferred into here");
-    uint8[] storage splits = tokenGenerationEvents[tokenGenerationEventName];
+  function distributeTokens(address _tokenAddress, uint _amount, string memory _tokenGenerationEventName) external onlyAdmin {
+    require(ERC20(_tokenAddress).balanceOf(address(this)) >= _amount, "Tokens were not transferred into here");
+    uint8[] storage splits = tokenGenerationEvents[_tokenGenerationEventName];
     for (uint i = 0; i < splitOwners.length; i++) {
-      uint result = balances[splitOwners[i]][tokenAddress] + (amount * splits[i] / 100);
-      require(result > balances[splitOwners[i]][tokenAddress], "Overflow in balance");
-      balances[splitOwners[i]][tokenAddress] = result;
+      uint result = balances[splitOwners[i]][_tokenAddress] + (_amount * splits[i] / 100);
+      require(result > balances[splitOwners[i]][_tokenAddress], "Overflow in balance");
+      balances[splitOwners[i]][_tokenAddress] = result;
     }
   }
 
@@ -237,19 +237,19 @@ abstract contract BaseOriumVault is IERC721Receiver {
     return scholarships[_index];
   }
 
-  function claim(address tokenAddress) external {
-    require (balances[tokenAddress][msg.sender] > 0, "No balance to claim");
-    uint toTransfer = balances[tokenAddress][msg.sender];
-    balances[tokenAddress][msg.sender] = 0;
-    ERC20(tokenAddress).transferFrom(address(this), msg.sender, toTransfer);
+  function claim(address _tokenAddress) external {
+    require (balances[_tokenAddress][msg.sender] > 0, "No balance to claim");
+    uint toTransfer = balances[_tokenAddress][msg.sender];
+    balances[_tokenAddress][msg.sender] = 0;
+    ERC20(_tokenAddress).transferFrom(address(this), msg.sender, toTransfer);
   }
 
-  function balanceOfTokens(address tokenAddress, address owner) external view returns (uint) {
-    return balances[tokenAddress][owner];
+  function balanceOfTokens(address _tokenAddress, address _owner) external view returns (uint) {
+    return balances[_tokenAddress][_owner];
   }
 
-  function getAllNfts(address owner) external view returns (Nft[] memory) {
-    return owners[owner];
+  function getAllNfts(address _owner) external view returns (Nft[] memory) {
+    return owners[_owner];
   }
 
 }
