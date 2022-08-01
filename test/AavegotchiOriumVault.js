@@ -13,7 +13,7 @@ describe("BaseOriumVault", function () {
   let erc20;
 
   beforeEach(async function () {
-    SimpleNft = await ethers.getContractFactory("SimpleNft");
+    SimpleNft = await ethers.getContractFactory("ERC721Token");
     [deployer, addr1, addr2, addr3] = await ethers.getSigners();
     nft = await SimpleNft.deploy();
     await nft.mint(addr1.address, 'uri1');
@@ -33,7 +33,7 @@ describe("BaseOriumVault", function () {
     await oriumVault.deployed();
     await oriumVault.connect(addr3).addNftAddressesToWhitelist([nft.address, nft2.address]);
 
-    SimpleToken1 = await ethers.getContractFactory("SimpleToken1");
+    SimpleToken1 = await ethers.getContractFactory("ERC20Token");
     erc20 = await SimpleToken1.deploy("ERC20Token", "E20T", 1000000000);
   });
 

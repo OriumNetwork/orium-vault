@@ -2,6 +2,7 @@ require("@nomiclabs/hardhat-waffle");
 require('@nomiclabs/hardhat-ethers');
 require('hardhat-gas-reporter');
 require('@openzeppelin/hardhat-upgrades');
+require('solidity-coverage')
 
 require('dotenv').config();
 

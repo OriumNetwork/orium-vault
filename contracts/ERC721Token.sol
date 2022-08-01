@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 
 
-contract SimpleNft is ERC721URIStorage, Ownable {
+contract ERC721Token is ERC721URIStorage, Ownable {
 
   using Counters for Counters.Counter;
   Counters.Counter private _tokenIds;

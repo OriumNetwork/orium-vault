@@ -11,13 +11,13 @@ describe("ClaimableContract", function () {
   beforeEach(async function () {
     [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
 
-    const Token1 = await ethers.getContractFactory("SimpleToken1");
+    const Token1 = await ethers.getContractFactory("ERC20Token");
     token1 = await Token1.deploy("SimpleToken1", "ST1", 10000000);
 
-    const Token2 = await ethers.getContractFactory("SimpleToken2");
+    const Token2 = await ethers.getContractFactory("ERC20Token");
     token2 = await Token2.deploy("SimpleToken2", "ST2", 10000000);
 
-    const Token3 = await ethers.getContractFactory("SimpleToken3");
+    const Token3 = await ethers.getContractFactory("ERC20Token");
     token3 = await Token3.deploy("SimpleToken3", "ST3", 10000000);
 
     const Claimable = await ethers.getContractFactory("ClaimableContract");

@@ -8,7 +8,7 @@ describe("Token contract", function () {
   let addrs;
 
   beforeEach(async function () {
-    const Token = await ethers.getContractFactory("SimpleToken1");
+    const Token = await ethers.getContractFactory("ERC20Token");
     [owner, addr1, addr2, ...addrs] = await ethers.getSigners();
     token = await Token.deploy("SimpleToken1", "ST1", 1000000);
   });
