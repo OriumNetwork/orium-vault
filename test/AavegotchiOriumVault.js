@@ -178,6 +178,22 @@ describe("BaseOriumVault", function () {
       expect(await oriumVault.balances(addr2.address, erc20.address)).to.equal(400000);
       expect(await oriumVault.balances(addr3.address, erc20.address)).to.equal(500000);
     });
+    it("Should claim tokens correctly", async function () {
+      const ownerAddresses = [addr1.address, addr2.address, addr3.address];
+      await oriumVault.connect(addr3).setSplitOwners(ownerAddresses);
+      await oriumVault.connect(addr3).createTokenGenerationEvent("test", [10, 40, 50])
+      await erc20.transfer(oriumVault.address, 1000000);
+      await oriumVault.connect(addr3).distributeTokens(erc20.address, 1000000, "test");
+
+      await oriumVault.connect(addr1).claim(erc20.address);
+      expect(await erc20.balanceOf(addr1.address)).to.equal(100000);
+
+      await oriumVault.connect(addr2).claim(erc20.address);
+      expect(await erc20.balanceOf(addr2.address)).to.equal(400000);
+
+      await oriumVault.connect(addr3).claim(erc20.address);
+      expect(await erc20.balanceOf(addr3.address)).to.equal(500000);
+    });
 
   });
 

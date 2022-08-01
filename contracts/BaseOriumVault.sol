@@ -192,25 +192,22 @@ abstract contract BaseOriumVault is IERC721Receiver {
   }
 
   function createTokenGenerationEvent(string calldata _name, uint8[] calldata _splits) external onlyAdmin {
-
     require(_splits.length == splitOwners.length, "Arrays should have the same length");
-
     uint8 total = 0;
     for (uint i = 0; i < _splits.length; i++) {
       total += _splits[i];
     }
     require(total == 100, "Splits does not sum up to 100");
-
     tokenGenerationEvents[_name] = _splits;
   }
 
-  function distributeTokens(address tokenAddress, uint amount, string memory tokenGenerationEventName) external onlyAdmin {
-    require(ERC20(tokenAddress).balanceOf(address(this)) >= amount, "Tokens were not transferred into here");
-    uint8[] storage splits = tokenGenerationEvents[tokenGenerationEventName];
+  function distributeTokens(address _tokenAddress, uint _amount, string memory _tokenGenerationEventName) external onlyAdmin {
+    require(ERC20(_tokenAddress).balanceOf(address(this)) >= _amount, "Tokens were not transferred into here");
+    uint8[] storage splits = tokenGenerationEvents[_tokenGenerationEventName];
     for (uint i = 0; i < splitOwners.length; i++) {
-      uint result = balances[splitOwners[i]][tokenAddress] + (amount * splits[i] / 100);
-      require(result > balances[splitOwners[i]][tokenAddress], "Overflow in balance");
-      balances[splitOwners[i]][tokenAddress] = result;
+      uint result = balances[splitOwners[i]][_tokenAddress] + (_amount * splits[i] / 100);
+      require(result > balances[splitOwners[i]][_tokenAddress], "Overflow in balance");
+      balances[splitOwners[i]][_tokenAddress] = result;
     }
   }
 
@@ -237,19 +234,20 @@ abstract contract BaseOriumVault is IERC721Receiver {
     return scholarships[_index];
   }
 
-  function claim(address tokenAddress) external {
-    require (balances[tokenAddress][msg.sender] > 0, "No balance to claim");
-    uint toTransfer = balances[tokenAddress][msg.sender];
-    balances[tokenAddress][msg.sender] = 0;
-    ERC20(tokenAddress).transferFrom(address(this), msg.sender, toTransfer);
+  function claim(address _tokenAddress) external {
+    uint toTransfer = balances[msg.sender][_tokenAddress];
+    require (toTransfer > 0, "No balance to claim");
+    balances[msg.sender][_tokenAddress] = 0;
+    bool result = ERC20(_tokenAddress).transfer(msg.sender, toTransfer);
+    require(result, "Transfer failed");
   }
 
-  function balanceOfTokens(address tokenAddress, address owner) external view returns (uint) {
-    return balances[tokenAddress][owner];
+  function balanceOfTokens(address _tokenAddress, address _owner) external view returns (uint) {
+    return balances[_tokenAddress][_owner];
   }
 
-  function getAllNfts(address owner) external view returns (Nft[] memory) {
-    return owners[owner];
+  function getAllNfts(address _owner) external view returns (Nft[] memory) {
+    return owners[_owner];
   }
 
 }
