@@ -1,15 +1,19 @@
 require("@nomiclabs/hardhat-waffle");
 require('@nomiclabs/hardhat-ethers');
-
+require('hardhat-gas-reporter');
 require('@openzeppelin/hardhat-upgrades');
 
 require('dotenv').config();
 
 module.exports = {
+
   defaultNetwork: "hardhat",
+
   networks: {
+
     hardhat: {
     },
+
     /*
     localhost: {
       url: "http://localhost:7545",
@@ -18,7 +22,9 @@ module.exports = {
       }
     },
     */
+
   },
+
   solidity: {
     version: "0.8.2",
     settings: {
@@ -28,6 +34,13 @@ module.exports = {
       }
     }
   },
+
+  gasReporter: {
+    enabled: true, 
+    gasPrice: 100, token: 'MATIC', currency: 'USD',
+    coinmarketcap: process.env.COINMARKETCAP_API_KEY
+  }
+
 }
 
 
